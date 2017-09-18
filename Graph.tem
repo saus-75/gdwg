@@ -1,3 +1,5 @@
-namespace gdwg {
+template <typename N, typename E>
 
+bool gdwg::Graph<N,E>::addNode(const N& val){
+    return true;
 }
