@@ -24,15 +24,15 @@ namespace gdwg {
         // Graph(const Graph& b);
         // Graph(Graph&& b);
 
-        bool addNode(const N& val);
+        // bool addNode(const N& val);
         // bool addEdge(const N& src, const N& dst, const E& w);
         // bool replace(const N& oldData, const N& newData);
         // void mergeReplace(const N& oldData, const N& newData);
         // void deleteNode(const N&) noexcept;
         // void deleteEdge(const N& src, const N& dst, const E& w) noexcept;
-        void clear() noexcept;
+        // void clear() noexcept;
         // bool isNode(const N& val) const;
-        void printNodes() const;
+        // void printNodes() const;
         // void printEdges(const N& val) const;
 
         // void begin() const;
@@ -44,9 +44,12 @@ namespace gdwg {
         class Node {
             public:
                 Node(const N& val) : nodePtr{std::make_shared<N>(val)}, degree{0} {
-                    std::cout << getNode() <<" [ Node Created ]\n";
+                    std::cout << " [ Node Created ]\n";
                 };
-                ~Node(){ std:: cout << getNode() <<" [ Node Deleted ]\n"; }
+
+                ~Node(){ 
+                    std:: cout << " [ Node Deleted ]\n"; 
+                }
 
                 const N& getNode() const {return *nodePtr;}
                 const unsigned int getDegree() const {return degree;}
@@ -63,36 +66,23 @@ namespace gdwg {
         };
 
         //vector of Nodes which comprises of shared_ptr pointing to a val
-        std::vector<Node> nodes;
+        //a vector of shared ptr of Nodes
+        std::vector<shared_ptr<Node>> nodes;
     };
 
     //add Node into graph
     template <typename N, typename E>
     bool Graph<N,E>::addNode(const N& val){
-        //Dup checker
-        for (auto i : nodes){
-            if (i.getNode() == val){
-                return false;
-            }
-        }
-        Node newNode{val};
-        nodes.push_back(newNode);
-        return true; 
     }
 
     //print the nodes in the graph
     template <typename N, typename E>
     void Graph<N,E>::printNodes() const{
-        for (auto i : nodes){
-            std::cout << i.getNode() << " " << i.getDegree() << "\n";
-        }
     }
 
     //More to add
     template <typename N, typename E>
     void Graph<N,E>::clear() noexcept{
-        std::cout<<"[ Graph Cleared ]\n";
-        nodes.clear();
     }
 
 // #include "Graph.tem"
