@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <stdexcept>
+#include <typeinfo>
 
 namespace gdwg {
     template <typename N, typename E>
@@ -15,7 +17,7 @@ namespace gdwg {
         Graph(){
             std::cout << "[ Graph Created ]\n";
         }
-        
+ 
         ~Graph(){
             std::cout << "[ Graph Destroyed ]\n"; 
         };
@@ -24,16 +26,24 @@ namespace gdwg {
         // Graph(const Graph& b);
         // Graph(Graph&& b);
 
+        //copy and move assignment
+        // Graph& operator= (const Graph& b);
+        // Graph& operator= (Graph&& b);
+
         bool addNode(const N& val);
-        // bool addEdge(const N& src, const N& dst, const E& w);
+        bool addEdge(const N& src, const N& dst, const E& w);
         // bool replace(const N& oldData, const N& newData);
         // void mergeReplace(const N& oldData, const N& newData);
         // void deleteNode(const N&) noexcept;
         // void deleteEdge(const N& src, const N& dst, const E& w) noexcept;
         void clear() noexcept;
-        // bool isNode(const N& val) const;
+        bool isNode(const N& val) const;
+        // bool isConnected(const N& src, const N& dst) const;
+        
+        //TODO sort by ascending out-degrees
         void printNodes() const;
-        // void printEdges(const N& val) const;
+        //TODO sort by ascending weights
+        void printEdges(const N& val) const;
 
         // void begin() const;
         // bool end() const;
@@ -41,63 +51,74 @@ namespace gdwg {
         // const N& value() const;
 
     private:
-        class Node {
-            public:
-                Node(const N& val) : nodePtr{std::make_shared<N>(val)}, degree{0} {
-                    std::cout << getNode() <<" [ Node Created ]\n";
-                };
-                ~Node(){ std:: cout << getNode() <<" [ Node Deleted ]\n"; }
-
-                const N& getNode() const {return *nodePtr;}
-                const unsigned int getDegree() const {return degree;}
-                //for when edge class need access?
-                // std::weak_ptr<N> getNodePtr() const {return nodePtr;}
-                
-            private:
-                //a shared ptr pointing to a val
-                std::shared_ptr<N> nodePtr;
-                //node's number of neighbours
-                unsigned int degree;
-                //vector of Edges which comprises of two weak_ptr pointing to two nodes
-                // std::vector<Edge> edges;
-        };
-
-        //vector of Nodes which comprises of shared_ptr pointing to a val
+        class Node;
         std::vector<Node> nodes;
+
+    private:
+        class Node {
+        public:
+            Node(const N& val) : 
+                nodePtr{std::make_shared<N>(val)}, in_{0}, out_{0} 
+            {
+                std::cout << getNode() <<" [ Node Created ]\n";
+            };
+
+            ~Node(){}
+
+            bool formEdge(Node& dst, const E& weight);
+            bool isEdge(const Node& dst) const;
+            void clearEdges(){edges.clear();}
+            void incIn(){in_++;}
+            void printEdges() const;
+
+            std::weak_ptr<N> getNodePtr() const {return nodePtr;}
+            const N& getNode() const {return *nodePtr;}
+            const unsigned int getIn() const {return in_;}
+            const unsigned int getOut() const {return out_;}
+            // const std::vector<Edge> getEdges() const {return edges;}
+
+
+        
+        private:
+            //Forward declaration of Edge class
+            class Edge;
+            //a shared ptr pointing to a val
+            std::shared_ptr<N> nodePtr;
+            //number of incoming edges
+            unsigned int in_;
+            //number of outgoing edges
+            unsigned int out_;
+            //comprises all nodes its connected to
+            std::vector<Edge> edges;
+
+        private:
+            class Edge {
+            public:
+                Edge(const Node& dst, const E& w) : 
+                    weight_{w}, dst_{dst.getNodePtr()} {
+                    std::cout << "[ Edge Created ]\n";
+                }
+                
+                ~Edge(){}
+
+                const N& getDst() const { auto dst = dst_.lock(); return *dst; }
+                const E& getWeight() const { return weight_; }
+
+                friend bool operator==(const Edge& a, const Edge& b){
+                    if ((a.getDst == b.getDst) && (a.getWeight == b.getWeight)){
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+
+            private:
+                E weight_;
+                std::weak_ptr<N> dst_;
+            };
+        };
     };
 
-    //add Node into graph
-    template <typename N, typename E>
-    bool Graph<N,E>::addNode(const N& val){
-        //Dup checker
-        for (auto i : nodes){
-            if (i.getNode() == val){
-                return false;
-            }
-        }
-        Node newNode{val};
-        nodes.push_back(newNode);
-        return true; 
-    }
-
-    //print the nodes in the graph
-    template <typename N, typename E>
-    void Graph<N,E>::printNodes() const{
-        for (auto i : nodes){
-            std::cout << i.getNode() << " " << i.getDegree() << "\n";
-        }
-    }
-
-    //More to add
-    template <typename N, typename E>
-    void Graph<N,E>::clear() noexcept{
-        std::cout<<"[ Graph Cleared ]\n";
-        nodes.clear();
-    }
-
-// #include "Graph.tem"
-
+    #include "Graph.tem"
 }
-
-
 #endif
