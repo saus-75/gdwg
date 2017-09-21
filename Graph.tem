@@ -1,7 +1,7 @@
 //add Node into graph
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::addNode(const N& val){
-    if (isNode(val)){ std::cout << "Dup Detected!\n"; return false; }
+    if (isNode(val)){ return false; }
     nodes.push_back(Node(val));
     return true; 
 }
@@ -27,6 +27,26 @@ bool gdwg::Graph<N,E>::addEdge(const N& src, const N& dst, const E& w){
     }
 }
 
+//Delete edge src -> dst, with w weight
+template <typename N, typename E>
+void gdwg::Graph<N,E>::deleteEdge(const N& src, const N& dst, const E& w) noexcept{
+    if (isNode(src) && isNode(dst)){
+        auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node& n){
+            return src == n.getNode();
+        });
+        auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node& n){
+            return dst == n.getNode();
+        }); 
+        
+        if (srcNode->removeEdge(dst, w)){
+            dstNode->decIn();
+        }
+
+    } else {
+        return;
+    }
+}
+
 //Clear the graph
 template <typename N, typename E>
 void gdwg::Graph<N,E>::clear() noexcept{
@@ -44,6 +64,22 @@ bool gdwg::Graph<N,E>::isNode(const N& val) const{
         if (i.getNode() == val){
             return true;
         }
+    }
+    return false;
+}
+
+// Check if two nodes are connected
+template <typename N, typename E>
+bool gdwg::Graph<N,E>::isConnected(const N& src, const N& dst) const{
+    if (!isNode(src) || !isNode(dst)){ throw std::runtime_error("One or both Node doesn't exist!"); }
+    auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node& n){
+        return src == n.getNode();
+    });
+    auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node& n){
+        return dst == n.getNode();
+    }); 
+    if (srcNode->isConnected(*dstNode)){
+        return true;
     }
     return false;
 }
@@ -76,17 +112,42 @@ void gdwg::Graph<N,E>::printEdges(const N& val) const{
 //dependent function for addEdge()
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::Node::formEdge(Node& dst, const E& weight){
-    if (isEdge(dst)){ std::cout << "Dup Detected!\n"; return false; }
+    if (isEdge(dst, weight)){ return false; }
     edges.push_back(Edge(dst,weight));
     out_++;
     dst.incIn();
     return true;
 }
 
+//Dependent function for deleteEdge()
+template <typename N, typename E>
+bool gdwg::Graph<N,E>::Node::removeEdge(const N& dst, const E& w) noexcept {
+
+    for (auto i = edges.begin(); i < edges.end(); ++i){
+        if (i->getDst() == dst && i->getWeight() == w){
+            edges.erase(i);
+            out_--;
+            return true;
+        }
+    }
+    return false;
+}
+
 //Check if destined node is already connected with same weight
 template <typename N, typename E>
-bool gdwg::Graph<N,E>::Node::isEdge(const Node& dst) const {
+bool gdwg::Graph<N,E>::Node::isEdge(const Node& dst, const E& weight) const {
     for(auto i : edges){
+        if (i.getDst() == dst.getNode() && i.getWeight() == weight){
+            return true;
+        }
+    }
+    return false;
+}
+
+//Check if there exist a connection to destined node
+template <typename N, typename E>
+bool gdwg::Graph<N,E>::Node::isConnected(const Node& dst) const{
+    for (auto i : edges){
         if (i.getDst() == dst.getNode()){
             return true;
         }
@@ -105,21 +166,3 @@ void gdwg::Graph<N,E>::Node::printEdges() const{
         std::cout << "(null)\n";
     }
 }
-
-/*bool isConnected(const N& src, const N& dst) const{
-    if (!isNode(src) || !isNode(dst)){
-        throw std::runtime_error("One or both Node doesn't exist!");
-    }
-    auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node& n){
-        return src == n.getNode();
-    });
-    auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node& n){
-        return dst == n.getNode();
-    });
-
-    if (srcNode->isEdge(*dstNode)){
-        return true;
-    } else {
-        return false;
-    }
-}*/

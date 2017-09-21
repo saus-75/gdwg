@@ -35,20 +35,21 @@ namespace gdwg {
         // bool replace(const N& oldData, const N& newData);
         // void mergeReplace(const N& oldData, const N& newData);
         // void deleteNode(const N&) noexcept;
-        // void deleteEdge(const N& src, const N& dst, const E& w) noexcept;
+        void deleteEdge(const N& src, const N& dst, const E& w) noexcept;
         void clear() noexcept;
         bool isNode(const N& val) const;
-        // bool isConnected(const N& src, const N& dst) const;
-        
+        bool isConnected(const N& src, const N& dst) const;
+
         //TODO sort by ascending out-degrees
         void printNodes() const;
         //TODO sort by ascending weights
         void printEdges(const N& val) const;
 
-        // void begin() const;
-        // bool end() const;
-        // void next() const;
-        // const N& value() const;
+        // void begin() const {}
+        // bool end() const {}
+        // void next() const {nodes.next();}
+        // const N& value() const {nodes.begin()->getNode();}
+        //TODO remove debugging prints
 
     private:
         class Node;
@@ -58,26 +59,26 @@ namespace gdwg {
         class Node {
         public:
             Node(const N& val) : 
-                nodePtr{std::make_shared<N>(val)}, in_{0}, out_{0} 
-            {
-                std::cout << getNode() <<" [ Node Created ]\n";
-            };
+                nodePtr{std::make_shared<N>(val)}, in_{0}, out_{0}{}
 
             ~Node(){}
 
             bool formEdge(Node& dst, const E& weight);
-            bool isEdge(const Node& dst) const;
+            bool removeEdge(const N& dst, const E& w) noexcept;
+            bool isEdge(const Node& dst, const E& weight) const;
+            bool isConnected(const Node& dst) const;
             void clearEdges(){edges.clear();}
-            void incIn(){in_++;}
             void printEdges() const;
+            void incIn(){in_++;}
+            void decIn(){in_--;}
 
             std::weak_ptr<N> getNodePtr() const {return nodePtr;}
             const N& getNode() const {return *nodePtr;}
             const unsigned int getIn() const {return in_;}
             const unsigned int getOut() const {return out_;}
-            // const std::vector<Edge> getEdges() const {return edges;}
-
-
+            bool operator < (const Node& n) const {
+                return (out_ < n.getOut());
+            }
         
         private:
             //Forward declaration of Edge class
@@ -95,22 +96,12 @@ namespace gdwg {
             class Edge {
             public:
                 Edge(const Node& dst, const E& w) : 
-                    weight_{w}, dst_{dst.getNodePtr()} {
-                    std::cout << "[ Edge Created ]\n";
-                }
+                    weight_{w}, dst_{dst.getNodePtr()}{}
                 
                 ~Edge(){}
 
                 const N& getDst() const { auto dst = dst_.lock(); return *dst; }
                 const E& getWeight() const { return weight_; }
-
-                friend bool operator==(const Edge& a, const Edge& b){
-                    if ((a.getDst == b.getDst) && (a.getWeight == b.getWeight)){
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
 
             private:
                 E weight_;
@@ -120,5 +111,6 @@ namespace gdwg {
     };
 
     #include "Graph.tem"
+
 }
 #endif
