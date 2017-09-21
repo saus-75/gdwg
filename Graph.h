@@ -76,9 +76,6 @@ namespace gdwg {
             const N& getNode() const {return *nodePtr;}
             const unsigned int getIn() const {return in_;}
             const unsigned int getOut() const {return out_;}
-            bool operator < (const Node& n) const {
-                return (out_ < n.getOut());
-            }
         
         private:
             //Forward declaration of Edge class

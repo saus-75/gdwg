@@ -87,6 +87,8 @@ bool gdwg::Graph<N,E>::isConnected(const N& src, const N& dst) const{
 //Print out all the node in a graph
 template <typename N, typename E>
 void gdwg::Graph<N,E>::printNodes() const{
+        [] (const Node& a, const Node& b) -> bool { return a.getOut() < b.getOut(); }
+    );
     for (auto i : nodes){
         std::cout << i.getNode() << " " << i.getIn() << " " << i.getOut() << "\n";
     }
@@ -122,7 +124,6 @@ bool gdwg::Graph<N,E>::Node::formEdge(Node& dst, const E& weight){
 //Dependent function for deleteEdge()
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::Node::removeEdge(const N& dst, const E& w) noexcept {
-
     for (auto i = edges.begin(); i < edges.end(); ++i){
         if (i->getDst() == dst && i->getWeight() == w){
             edges.erase(i);
