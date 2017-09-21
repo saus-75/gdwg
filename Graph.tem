@@ -2,49 +2,110 @@
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::addNode(const N& val){
     if (isNode(val)){ return false; }
-    nodes.push_back(Node(val));
+    nodes.push_back(std::make_shared<Node>(Node(val)));
+
+    std::sort(nodes.begin(), nodes.end(),
+        [] (const Node_ & a, const Node_ & b)
+        { 
+            if (a->getOut() == b->getOut()) return a->getOut() < b->getOut();
+            return (a->getOut() < b->getOut()); 
+        });
+
     return true; 
 }
 
 
-
-//add Edge into graph
+// add Edge into graph
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::addEdge(const N& src, const N& dst, const E& w){
     if (!isNode(src) || !isNode(dst)){ throw std::runtime_error("One or both Node doesn't exist!"); }
 
-    auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node& n){
-        return src == n.getNode();
+    auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node_& n){
+        return src == (*n).getNode();
     });
-    auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node& n){
-        return dst == n.getNode();
+    auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node_& n){
+        return dst == (*n).getNode();
     });    
-
-    if (srcNode->formEdge(*dstNode, w)){
+    if ((*srcNode)->formEdge(*dstNode, w)){
+        (*dstNode)->formInEdge(*srcNode, w);
+        std::sort(nodes.begin(), nodes.end(),
+            [] (const Node_ & a, const Node_ & b)
+            { 
+                if (a->getOut() == b->getOut()) return a->getOut() < b->getOut();
+                return (a->getOut() < b->getOut()); 
+            });
         return true;
     } else {
         return false;
     }
 }
 
+
+template <typename N, typename E>
+bool gdwg::Graph<N,E>::replace(const N& oldData, const N& newData){
+    if (!isNode(oldData)){ throw std::runtime_error("Node doesn't exist!"); }
+    
+    if (isNode(newData)){return false;}
+
+    auto oldNode = std::find_if(nodes.begin(), nodes.end(), [&oldData] (const Node_& n){
+        return oldData == (*n).getNode();
+    });
+
+    (*oldNode)->replace(newData);
+    std::sort(nodes.begin(), nodes.end(),
+        [] (const Node_ & a, const Node_ & b)
+        { 
+            if (a->getOut() == b->getOut()) return a->getOut() < b->getOut();
+            return (a->getOut() < b->getOut()); 
+        });
+    return true;
+
+}
+
 //Delete edge src -> dst, with w weight
 template <typename N, typename E>
 void gdwg::Graph<N,E>::deleteEdge(const N& src, const N& dst, const E& w) noexcept{
     if (isNode(src) && isNode(dst)){
-        auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node& n){
-            return src == n.getNode();
+        auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node_& n){
+            return src == (*n).getNode();
         });
-        auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node& n){
-            return dst == n.getNode();
+        auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node_& n){
+            return dst == (*n).getNode();
         }); 
         
-        if (srcNode->removeEdge(dst, w)){
-            dstNode->decIn();
+        if ((*srcNode)->removeEdge(dst, w)){
+            (*dstNode)->removeInEdge(src, w);
+            std::sort(nodes.begin(), nodes.end(),
+                [] (const Node_ & a, const Node_ & b)
+                { 
+                    if (a->getOut() == b->getOut()) return a->getOut() < b->getOut();
+                    return (a->getOut() < b->getOut()); 
+                });
         }
-
     } else {
         return;
     }
+}
+
+//Deletes the given node and all it's coressponding edges
+template <typename N, typename E>
+void gdwg::Graph<N,E>::deleteNode(const N& val) noexcept{
+    if (isNode(val)){
+        auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&val] (const Node_& n){
+            return val == (*n).getNode();
+        });
+        nodes.erase(srcNode);
+    }
+    for (auto i : nodes){
+        (*i).cleanEdges(); 
+        (*i).upAll();
+    }
+    std::sort(nodes.begin(), nodes.end(),
+        [] (const Node_ & a, const Node_ & b)
+        { 
+            if (a->getOut() == b->getOut()) return a->getOut() < b->getOut();
+            return (a->getOut() < b->getOut()); 
+        });
 }
 
 //Clear the graph
@@ -52,7 +113,7 @@ template <typename N, typename E>
 void gdwg::Graph<N,E>::clear() noexcept{
     std::cout<<"[ Graph Cleared ]\n";
     for (auto i : nodes){
-        i.clearEdges();
+        (*i).clearEdges();
     }
     nodes.clear();
 }
@@ -61,7 +122,7 @@ void gdwg::Graph<N,E>::clear() noexcept{
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::isNode(const N& val) const{
     for (auto i : nodes){
-        if (i.getNode() == val){
+        if ((*i).getNode() == val){
             return true;
         }
     }
@@ -72,13 +133,13 @@ bool gdwg::Graph<N,E>::isNode(const N& val) const{
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::isConnected(const N& src, const N& dst) const{
     if (!isNode(src) || !isNode(dst)){ throw std::runtime_error("One or both Node doesn't exist!"); }
-    auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node& n){
-        return src == n.getNode();
+    auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&src] (const Node_& n){
+        return src == (*n).getNode();
     });
-    auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node& n){
-        return dst == n.getNode();
+    auto dstNode = std::find_if(nodes.begin(), nodes.end(), [&dst] (const Node_& n){
+        return dst == (*n).getNode();
     }); 
-    if (srcNode->isConnected(*dstNode)){
+    if ((*srcNode)->isConnected(**dstNode)){
         return true;
     }
     return false;
@@ -87,8 +148,9 @@ bool gdwg::Graph<N,E>::isConnected(const N& src, const N& dst) const{
 //Print out all the node in a graph
 template <typename N, typename E>
 void gdwg::Graph<N,E>::printNodes() const{
+
     for (auto i : nodes){
-        std::cout << i.getNode() << " " << i.getIn() << " " << i.getOut() << "\n";
+        std::cout << (*i).getNode() << " " << (*i).getIn() << " " << (*i).getOut() << "\n";
     }
 }
 
@@ -97,46 +159,77 @@ template <typename N, typename E>
 void gdwg::Graph<N,E>::printEdges(const N& val) const{
     if (isNode(val)){
         std::cout << "Edges attached to Node " << val << "\n";
-        auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&val] (const Node& n){
-            return val == n.getNode();
+        auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&val] (const Node_& n){
+            return val == (*n).getNode();
         });
-        srcNode->printEdges();
+        (*srcNode)->printEdges();
+    } else {
+        throw std::runtime_error("Node does not exist in Graph");
+    }
+}
+
+//REMOVE THIS FUNCTION AFTER FINISH DONT GIVE PUBLIC ACCESS TO THIS
+template <typename N, typename E>
+void gdwg::Graph<N,E>::printInEdges(const N& val) const{
+    if (isNode(val)){
+        std::cout << "Incoming Edges attached to Node " << val << "\n";
+        auto srcNode = std::find_if(nodes.begin(), nodes.end(), [&val] (const Node_& n){
+            return val == (*n).getNode();
+        });
+        (*srcNode)->printInEdges();
     } else {
         throw std::runtime_error("Node does not exist in Graph");
     }
 }
 
 
-/*--------------Dependent Fucntion from Node or Edge class--------------*/
+// /*--------------Dependent Fucntion from Node or Edge class--------------*/
 
 //dependent function for addEdge()
 template <typename N, typename E>
-bool gdwg::Graph<N,E>::Node::formEdge(Node& dst, const E& weight){
+bool gdwg::Graph<N,E>::Node::formEdge(Node_& dst, const E& weight){
     if (isEdge(dst, weight)){ return false; }
-    edges.push_back(Edge(dst,weight));
-    out_++;
-    dst.incIn();
+    edges.push_back(std::make_shared<Edge>(Edge(dst,weight)));
+    upOut();
     return true;
+}
+
+//dependent function for addEdge()
+template <typename N, typename E>
+void gdwg::Graph<N,E>::Node::formInEdge(Node_& src, const E& weight){
+    inEdges.push_back(std::make_shared<Edge>(Edge(src,weight)));
+    upIn();
 }
 
 //Dependent function for deleteEdge()
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::Node::removeEdge(const N& dst, const E& w) noexcept {
     for (auto i = edges.begin(); i < edges.end(); ++i){
-        if (i->getDst() == dst && i->getWeight() == w){
+        if ((*i)->getDst().getNode() == dst && (*i)->getWeight() == w){
             edges.erase(i);
-            out_--;
+            upOut();
             return true;
         }
     }
     return false;
 }
 
-//Check if destined node is already connected with same weight
+//Dependent function for delereEdge()
 template <typename N, typename E>
-bool gdwg::Graph<N,E>::Node::isEdge(const Node& dst, const E& weight) const {
+void gdwg::Graph<N,E>::Node::removeInEdge(const N& src, const E& w) noexcept {
+    for (auto i = inEdges.begin(); i < inEdges.end(); ++i){
+        if (((*i)->getDst().getNode() == src) && (*i)->getWeight() == w){
+            inEdges.erase(i);
+            upIn();
+        }
+    }
+}
+
+// Check if destined node is already connected with same weight
+template <typename N, typename E>
+bool gdwg::Graph<N,E>::Node::isEdge(const Node_& dst, const E& weight) const {
     for(auto i : edges){
-        if (i.getDst() == dst.getNode() && i.getWeight() == weight){
+        if ((*i).getDst().getNode() == (*dst).getNode() && (*i).getWeight() == weight){
             return true;
         }
     }
@@ -147,19 +240,62 @@ bool gdwg::Graph<N,E>::Node::isEdge(const Node& dst, const E& weight) const {
 template <typename N, typename E>
 bool gdwg::Graph<N,E>::Node::isConnected(const Node& dst) const{
     for (auto i : edges){
-        if (i.getDst() == dst.getNode()){
+        if ((*i).getDst().getNode() == dst.getNode()){
             return true;
         }
     }
     return false;
 }
 
+
+//Clean up all the null edges
+//Would not work for dup edges with different weights tho i dont know why...
+template <typename N, typename E>
+void gdwg::Graph<N,E>::Node::cleanEdges(){
+    for (auto i = inEdges.begin(); i < inEdges.end(); ++i){   
+        if (!(*i)->canUnlock()){
+            inEdges.erase(i);
+        }
+    }
+
+    for (auto j = edges.begin(); j < edges.end(); ++j){
+        if (!(*j)->canUnlock()){
+            edges.erase(j);
+        }
+    }
+}
+
 //For printing edges
 template <typename N, typename E>
-void gdwg::Graph<N,E>::Node::printEdges() const{
+void gdwg::Graph<N,E>::Node::printEdges(){
+    std::sort(edges.begin(), edges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
     if (out_ != 0){
         for (auto i : edges){
-            std::cout<<i.getDst() << " " << i.getWeight() <<"\n";
+            std::cout<< (*i).getDst().getNode() << " " << (*i).getWeight() <<"\n";
+        }
+    } else {
+        std::cout << "(null)\n";
+    }
+}
+
+//REMOVE THIS FUNCTION AFTER FINISH DONT GIVE PUBLIC ACCESS TO THIS
+//For printing edges
+template <typename N, typename E>
+void gdwg::Graph<N,E>::Node::printInEdges(){
+    std::sort(inEdges.begin(), inEdges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
+    if (in_ != 0){
+        for (auto i : inEdges){
+            std::cout<< (*i).getDst().getNode() << " " << (*i).getWeight() <<"\n";
         }
     } else {
         std::cout << "(null)\n";
