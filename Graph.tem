@@ -59,7 +59,40 @@ bool gdwg::Graph<N,E>::replace(const N& oldData, const N& newData){
             return (a->getOut() < b->getOut()); 
         });
     return true;
+}
 
+//Half working will work on it
+template <typename N, typename E>
+void gdwg::Graph<N,E>::mergeReplace(const N& oldData, const N& newData){
+    if (!isNode(oldData) || !isNode(newData)){ throw std::runtime_error("One or both Node doesn't exist!"); }
+
+    auto oldNode = std::find_if(nodes.begin(), nodes.end(), [&oldData] (const Node_& n){
+        return oldData == (*n).getNode();
+    });
+    auto newNode = std::find_if(nodes.begin(), nodes.end(), [&newData] (const Node_& n){
+        return newData == (*n).getNode();
+    }); 
+
+    for (auto i : (*oldNode)->getInEdge()){
+        std::cout << "Incoming edges: " << (*i).getDst().getNode() << "\n";
+        if (addEdge((*i).getDst().getNode(), newData, (*i).getWeight())){
+            std::cout<<"TRUE\n";
+        } else {
+            std::cout<<"FALSE\n";
+        }
+    }
+
+    for (auto i: (*oldNode)->getOutEdge()){
+        //Need to replace all incoming edge of olddata or it will shit itself
+        std::cout << "Outgoing edges: " << (*i).getDst().getNode() << "\n";
+        if (addEdge(newData, (*i).getDst().getNode(), (*i).getWeight())){
+            std::cout<<"TRUE\n";
+        } else {
+            std::cout<<"FALSE\n";
+        }
+    }
+
+    deleteNode(oldData);
 }
 
 //Delete edge src -> dst, with w weight
@@ -191,6 +224,13 @@ bool gdwg::Graph<N,E>::Node::formEdge(Node_& dst, const E& weight){
     if (isEdge(dst, weight)){ return false; }
     edges.push_back(std::make_shared<Edge>(Edge(dst,weight)));
     upOut();
+
+    std::sort(edges.begin(), edges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
     return true;
 }
 
@@ -199,6 +239,12 @@ template <typename N, typename E>
 void gdwg::Graph<N,E>::Node::formInEdge(Node_& src, const E& weight){
     inEdges.push_back(std::make_shared<Edge>(Edge(src,weight)));
     upIn();
+    std::sort(inEdges.begin(), inEdges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
 }
 
 //Dependent function for deleteEdge()
@@ -211,6 +257,12 @@ bool gdwg::Graph<N,E>::Node::removeEdge(const N& dst, const E& w) noexcept {
             return true;
         }
     }
+    std::sort(edges.begin(), edges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
     return false;
 }
 
@@ -223,6 +275,12 @@ void gdwg::Graph<N,E>::Node::removeInEdge(const N& src, const E& w) noexcept {
             upIn();
         }
     }
+    std::sort(inEdges.begin(), inEdges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
 }
 
 // Check if destined node is already connected with same weight
@@ -263,6 +321,18 @@ void gdwg::Graph<N,E>::Node::cleanEdges(){
             edges.erase(j);
         }
     }
+    std::sort(edges.begin(), edges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
+    std::sort(inEdges.begin(), inEdges.end(),
+        [] (const Edge_ & a, const Edge_ & b)
+        { 
+            if (a->getWeight() == b->getWeight()) return a->getWeight() < b->getWeight();
+            return (a->getWeight() < b->getWeight()); 
+        });
 }
 
 //For printing edges
